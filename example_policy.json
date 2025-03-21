@@ -31,7 +31,10 @@
             "Action": [
                 "s3:*"
             ],
-            "Resource": "*"
+            "Resource": [
+                "arn:aws:s3:::mybucket",
+                "arn:aws:s3:::mybucket/*"
+            ]
         },
         {
             "Effect": "Allow",
