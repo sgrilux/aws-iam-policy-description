@@ -99,7 +99,7 @@ def print_table(permission_map):
 
         statement_index += 1
         policy_table.add_section()
-    
+
     console.print(policy_table)
 
 
@@ -123,8 +123,8 @@ def main():
     except Exception as e:
         print(f"An error occurred: {str(e)}")
         # Print stack trace
-        import traceback
-        traceback.print_exc()
+        # import traceback
+        # traceback.print_exc()
 
 
 if __name__ == "__main__":
