@@ -2,7 +2,7 @@ import argparse
 import json
 import boto3
 import requests
-# import sys
+
 from rich.console import Console
 from rich.table import Table
 
@@ -47,8 +47,10 @@ def get_action_descriptions(policy_document, ssl_verify=False):
         statement_map["Effect"] = effect
         statement_map["Resource"] = resource
 
-        for action in actions:
+        if isinstance(actions, str):
+            actions = [actions]
 
+        for action in actions:
             service, privilege = action.split(':')
             if privilege == "*":
                 description = f"All actions under {service}"
@@ -91,7 +93,11 @@ def print_table(permission_map):
             action_table.add_row(action, description)
 
         resource_table = Table(show_header=False, box=None)
-        for resource in statement.get('Resource', []):
+        resources = statement.get('Resource')
+        if isinstance(resources, str):
+            resources = [resources]
+
+        for resource in resources:
             resource_table.add_row(resource)
 
         statement_table.add_row(action_table, statement.get("Effect"), resource_table)
@@ -107,7 +113,7 @@ def main():
     parser = argparse.ArgumentParser(description='Process IAM policy and print action descriptions.')
     parser.add_argument('--file', type=str, help='Path to the IAM policy JSON file.')
     parser.add_argument('--name', type=str, help='Name of the IAM policy in AWS.')
-    parser.add_argument('--ssl-verify', type=bool, default=True, help='Wheter to verify SSL certificate.')
+    parser.add_argument('--ssl-verify-skip', action='store_false', help='Wheter to verify SSL certificate.')
     args = parser.parse_args()
 
     try:
@@ -118,13 +124,13 @@ def main():
         else:
             raise ValueError("Either --file or --name must be provided.")
 
-        action_descriptions = get_action_descriptions(policy_document, args.ssl_verify)
+        action_descriptions = get_action_descriptions(policy_document, args.ssl_verify_skip)
         print_table(action_descriptions)
     except Exception as e:
         print(f"An error occurred: {str(e)}")
         # Print stack trace
-        # import traceback
-        # traceback.print_exc()
+        import traceback
+        traceback.print_exc()
 
 
 if __name__ == "__main__":
