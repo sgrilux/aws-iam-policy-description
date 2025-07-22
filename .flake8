@@ -1,0 +1,28 @@
+[flake8]
+# Configuration for flake8 linting
+
+# Maximum line length
+max-line-length = 120
+
+# Ignore specific error codes
+# E203: whitespace before ':' (conflicts with black)
+# W503: line break before binary operator (conflicts with black)
+# E501: line too long (handled by black)
+# I100, I101, I201, I202: import order (handled by isort)
+extend-ignore = E203, W503, E501, I100, I101, I201, I202
+
+# Maximum cyclomatic complexity
+max-complexity = 12
+
+# Exclude files and directories
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    .pytest_cache,
+    build,
+    dist,
+    *.egg-info
+
+# Docstring conventions
+docstring-convention = google

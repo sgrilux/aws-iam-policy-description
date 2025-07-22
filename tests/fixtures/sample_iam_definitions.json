@@ -1,0 +1,28 @@
+[
+    {
+        "prefix": "s3",
+        "privileges": [
+            {
+                "privilege": "GetObject",
+                "description": "Grants permission to retrieve objects from Amazon S3"
+            },
+            {
+                "privilege": "ListBucket",
+                "description": "Grants permission to list some or all of the objects in an Amazon S3 bucket"
+            },
+            {
+                "privilege": "DeleteObject",
+                "description": "Grants permission to remove objects from Amazon S3"
+            }
+        ]
+    },
+    {
+        "prefix": "ec2",
+        "privileges": [
+            {
+                "privilege": "DescribeInstances",
+                "description": "Grants permission to describe one or more instances"
+            }
+        ]
+    }
+]
