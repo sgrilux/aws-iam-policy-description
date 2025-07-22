@@ -6,13 +6,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Running the application
 ```bash
-# Basic usage - analyze local policy files
+# Basic usage - analyze local policy files (detailed actions only)
 python main.py --file examples/s3_read_only.json
 python main.py --file examples/wildcard_actions.json
 
+# AI-powered policy analysis using Amazon Bedrock
+python main.py --file examples/data_scientist_policy.json --analysis-mode description
+python main.py --file examples/bedrock_analysis_policy.json --analysis-mode both
+python main.py --file examples/developer_policy.json --analysis-mode description
+
 # AWS managed policies
 python main.py --name ReadOnlyAccess
-python main.py --name PowerUserAccess --verbose
+python main.py --name PowerUserAccess --analysis-mode both --verbose
 
 # IAM Role analysis (fetches all attached policies)
 python main.py --role MyRole --verbose
@@ -24,11 +29,11 @@ python main.py --user MyUser --output csv --output-file user_permissions.csv
 
 # Policy ARN support
 python main.py --policy-arn arn:aws:iam::123456789012:policy/MyCustomPolicy
-python main.py --policy-arn arn:aws:iam::aws:policy/ReadOnlyAccess
+python main.py --policy-arn arn:aws:iam::aws:policy/ReadOnlyAccess --analysis-mode description
 
-# Different output formats
-python main.py --file examples/developer_policy.json --output json
-python main.py --file examples/wildcard_actions.json --output csv --output-file results.csv
+# Different output formats with Bedrock analysis
+python main.py --file examples/developer_policy.json --analysis-mode both --output json
+python main.py --file examples/wildcard_actions.json --analysis-mode description --output html --output-file ai_analysis.html
 python main.py --file examples/permission_boundary.json --output html --output-file report.html
 
 # Advanced options
@@ -37,13 +42,29 @@ python main.py --name PowerUserAccess --no-cache
 python main.py --file examples/ec2_trust_policy.json --ssl-verify
 ```
 
+### Development Setup
+
+```bash
+# Install development dependencies
+pip install -r requirements-dev.txt
+
+# Install pre-commit hooks
+pre-commit install
+# OR use make command
+make pre-commit-install
+```
+
 ### Testing
 ```bash
 # Run all tests
 python -m pytest tests/ -v
+# OR use make command
+make test
 
 # Run tests with coverage
 python -m pytest tests/ --cov=. --cov-report=html
+# OR use make command
+make test-coverage
 
 # Run specific test modules
 python -m pytest tests/test_main.py -v
@@ -51,7 +72,60 @@ python -m pytest tests/test_policy_fetcher.py -v
 python -m pytest tests/test_policy_analyzer.py -v
 python -m pytest tests/test_output_formatter.py -v
 python -m pytest tests/test_utils.py -v
+python -m pytest tests/test_bedrock_analyzer.py -v
 ```
+
+### Code Quality and Pre-commit Hooks
+
+This project uses pre-commit hooks to ensure code quality. The hooks run automatically on every commit and include:
+
+- **Code Formatting**: Black (Python code formatter) and isort (import sorting)
+- **Linting**: Flake8 (style guide enforcement)
+- **Type Checking**: MyPy (static type checking) 
+- **Security**: Bandit (security issue scanning)
+- **Testing**: Pytest (automated test suite)
+- **Documentation**: Interrogate (docstring coverage)
+
+```bash
+# Run all pre-commit hooks manually
+pre-commit run --all-files
+# OR use make command
+make pre-commit-run
+
+# Run individual checks
+make lint          # Run flake8 linting
+make format        # Format code with black and isort
+make type-check    # Run mypy type checking
+make security-check # Run bandit security scanning
+make docs-check    # Check documentation coverage
+make all-checks    # Run all quality checks
+
+# Format code before committing
+make format
+```
+
+#### Pre-commit Hook Configuration
+
+The pre-commit hooks are configured in `.pre-commit-config.yaml` and include:
+
+1. **File Checks**: Trailing whitespace, end-of-file fixing, YAML/JSON validation
+2. **Black**: Code formatting with 120 character line length
+3. **isort**: Import sorting compatible with Black
+4. **Flake8**: Linting with docstring and import order checks  
+5. **Bandit**: Security vulnerability scanning
+6. **MyPy**: Static type checking with boto3 stubs
+7. **Pytest**: Automated test execution
+8. **Interrogate**: Documentation coverage checking (80% threshold)
+
+#### Development Workflow
+
+1. Install development dependencies: `make install-dev`
+2. Install pre-commit hooks: `make pre-commit-install`  
+3. Make your changes
+4. Run quality checks: `make all-checks`
+5. Commit your changes (pre-commit hooks run automatically)
+
+If pre-commit hooks fail, fix the issues and commit again. The hooks help maintain consistent code quality and catch issues early.
 
 ### Installation
 ```bash
@@ -67,6 +141,11 @@ This is a Python CLI tool that analyzes AWS IAM policies and provides human-read
 - All policies attached to IAM roles (managed, inline, and trust policies)
 - All policies attached to IAM users (managed and inline)
 
+The tool supports two analysis modes:
+- **Actions mode** (default): Detailed breakdown of individual IAM actions with descriptions
+- **Description mode**: AI-generated policy summaries using Amazon Bedrock
+- **Both mode**: Combined AI summary and detailed action analysis
+
 It supports multiple output formats (table, JSON, CSV, HTML) and includes caching for improved performance.
 
 ### Module Structure
@@ -76,6 +155,7 @@ The application is organized into focused modules for better maintainability:
 - **main.py**: Entry point and command-line interface
 - **policy_fetcher.py**: AWS policy retrieval functions
 - **policy_analyzer.py**: Policy analysis and IAM definitions processing
+- **bedrock_analyzer.py**: AI-powered policy analysis using Amazon Bedrock
 - **output_formatter.py**: Output formatting for different formats
 - **utils.py**: Common utility functions
 
@@ -98,6 +178,15 @@ The application is organized into focused modules for better maintainability:
 - **get_action_descriptions()**: Maps IAM actions to human-readable descriptions
 - **process_multiple_policies()**: Processes multiple policies from roles/users
 - **setup_logging()**: Configures logging with Rich formatting
+
+#### bedrock_analyzer.py
+- **get_bedrock_policy_description()**: Generates AI summaries of policies using Bedrock
+- **create_policy_analysis_prompt()**: Creates specialized prompts for security-focused analysis
+- **invoke_claude_model()**: Invokes Anthropic Claude models via Bedrock
+- **invoke_titan_model()**: Invokes Amazon Titan models via Bedrock
+- **invoke_j2_model()**: Invokes AI21 Jurassic-2 models via Bedrock
+- **invoke_cohere_model()**: Invokes Cohere Command models via Bedrock
+- **list_available_models()**: Lists available Bedrock foundation models
 
 #### output_formatter.py
 - **format_output_table()**: Rich table formatting for terminal display

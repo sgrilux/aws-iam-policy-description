@@ -1,3 +1,1 @@
-"""
-Test package for AWS IAM Policy Description Tool.
-"""
+"""Test package for AWS IAM Policy Description Tool."""

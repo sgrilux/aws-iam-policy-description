@@ -1,6 +1,4 @@
-"""
-Test fixtures and mock data for unit tests.
-"""
+"""Test fixtures and mock data for unit tests."""
 
 
 # Expected output formats for testing
@@ -15,37 +13,19 @@ EXPECTED_CSV_OUTPUT = """Statement,PolicyName,PolicyType,Sid,Action,Description,
 """
 
 # Invalid policy documents for testing validation
-INVALID_POLICY_NO_STATEMENT = {
-    "Version": "2012-10-17"
-}
+INVALID_POLICY_NO_STATEMENT = {"Version": "2012-10-17"}
 
 INVALID_POLICY_NO_EFFECT = {
     "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Action": "s3:GetObject",
-            "Resource": "arn:aws:s3:::test-bucket/*"
-        }
-    ]
+    "Statement": [{"Action": "s3:GetObject", "Resource": "arn:aws:s3:::test-bucket/*"}],
 }
 
 INVALID_POLICY_INVALID_EFFECT = {
     "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Maybe",
-            "Action": "s3:GetObject",
-            "Resource": "arn:aws:s3:::test-bucket/*"
-        }
-    ]
+    "Statement": [{"Effect": "Maybe", "Action": "s3:GetObject", "Resource": "arn:aws:s3:::test-bucket/*"}],
 }
 
 INVALID_POLICY_NO_ACTION = {
     "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Resource": "arn:aws:s3:::test-bucket/*"
-        }
-    ]
+    "Statement": [{"Effect": "Allow", "Resource": "arn:aws:s3:::test-bucket/*"}],
 }

@@ -100,18 +100,71 @@ python main.py --file examples/permission_boundary.json
 - Maximum permission limits
 - Security guardrails
 
+---
+
+### 7. Bedrock Analysis Policy (`bedrock_analysis_policy.json`)
+A policy for applications that use Amazon Bedrock for AI model invocation.
+
+```bash
+python main.py --file examples/bedrock_analysis_policy.json --analysis-mode both
+```
+
+**Features demonstrated:**
+- Bedrock model invocation permissions
+- AI-generated policy summaries
+- Combined analysis modes
+
+---
+
+### 8. Data Scientist Policy (`data_scientist_policy.json`)
+A comprehensive policy for data scientists using multiple AWS AI/ML services.
+
+```bash
+python main.py --file examples/data_scientist_policy.json --analysis-mode description
+```
+
+**Features demonstrated:**
+- Multi-service AI/ML permissions  
+- Complex Deny conditions
+- AI-powered policy analysis
+
 ## Advanced Usage Examples
+
+### AI-Powered Policy Analysis with Bedrock
+
+The tool now supports AI-powered policy analysis using Amazon Bedrock. This provides natural language descriptions of what policies do, their security implications, and potential risks.
+
+```bash
+# Get only AI description (no detailed action breakdown)
+python main.py --file examples/data_scientist_policy.json --analysis-mode description
+
+# Get both AI description and detailed actions
+python main.py --file examples/bedrock_analysis_policy.json --analysis-mode both
+
+# Use different Bedrock models
+python main.py --file examples/developer_policy.json --analysis-mode description --bedrock-model anthropic.claude-3-haiku-20240307-v1:0
+
+# Specify Bedrock region
+python main.py --file examples/wildcard_actions.json --analysis-mode both --bedrock-region us-west-2
+```
+
+**Analysis Mode Options:**
+- `--analysis-mode actions` (default) - Detailed action breakdown only
+- `--analysis-mode description` - AI-generated summary only  
+- `--analysis-mode both` - Both AI summary and detailed actions
+
+**Note:** Bedrock analysis requires appropriate AWS permissions for the `bedrock:InvokeModel` action.
 
 ### Analyze AWS Managed Policies
 ```bash
 # Analyze AWS managed ReadOnlyAccess policy
 python main.py --name ReadOnlyAccess
 
-# Analyze PowerUserAccess policy with verbose output
-python main.py --name PowerUserAccess --verbose
+# Analyze PowerUserAccess policy with AI description
+python main.py --name PowerUserAccess --analysis-mode description --verbose
 
-# Export SecurityAudit policy to JSON
-python main.py --name SecurityAudit --output json --output-file security_audit.json
+# Export SecurityAudit policy with both analyses to JSON
+python main.py --name SecurityAudit --analysis-mode both --output json --output-file security_audit.json
 ```
 
 ### Analyze IAM Roles and Users

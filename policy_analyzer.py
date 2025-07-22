@@ -1,5 +1,4 @@
-"""
-Policy analysis module for processing IAM policy documents.
+"""Policy analysis module for processing IAM policy documents.
 
 This module handles:
 - Policy document validation
@@ -10,10 +9,13 @@ This module handles:
 
 import json
 import logging
-import requests
-from typing import Dict, List, Any, Optional, Union
-from pathlib import Path
 from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import requests
+
+from utils import normalize_to_list
 
 
 def setup_logging(verbose: bool = False) -> None:
@@ -21,12 +23,7 @@ def setup_logging(verbose: bool = False) -> None:
     from rich.logging import RichHandler
 
     level = logging.DEBUG if verbose else logging.INFO
-    logging.basicConfig(
-        level=level,
-        format="%(message)s",
-        datefmt="[%X]",
-        handlers=[RichHandler(rich_tracebacks=True)]
-    )
+    logging.basicConfig(level=level, format="%(message)s", datefmt="[%X]", handlers=[RichHandler(rich_tracebacks=True)])
 
 
 def get_cache_file_path(cache_dir: str) -> Path:
@@ -78,7 +75,9 @@ def validate_policy_document(policy_document: Dict[str, Any]) -> None:
             raise ValueError(f"Statement {i} must contain an 'Action' key")
 
 
-def fetch_iam_definitions(ssl_verify: bool = True, cache_dir: Optional[str] = None, use_cache: bool = True) -> List[Dict[str, Any]]:
+def fetch_iam_definitions(
+    ssl_verify: bool = True, cache_dir: Optional[str] = None, use_cache: bool = True
+) -> List[Dict[str, Any]]:
     """Fetch and parse IAM definitions from external API with caching support.
 
     Args:
@@ -100,8 +99,9 @@ def fetch_iam_definitions(ssl_verify: bool = True, cache_dir: Optional[str] = No
         if is_cache_valid(cache_file):
             logging.info("Using cached IAM definitions")
             try:
-                with open(cache_file, 'r') as f:
-                    return json.load(f)
+                with open(cache_file, "r") as f:
+                    cached_data = json.load(f)
+                    return cached_data  # type: ignore[no-any-return]
             except (json.JSONDecodeError, IOError) as e:
                 logging.warning(f"Failed to read cache file: {e}")
 
@@ -115,13 +115,13 @@ def fetch_iam_definitions(ssl_verify: bool = True, cache_dir: Optional[str] = No
         # Cache the result if caching is enabled
         if use_cache and cache_dir:
             try:
-                with open(cache_file, 'w') as f:
+                with open(cache_file, "w") as f:
                     json.dump(definitions, f)
                 logging.info(f"Cached IAM definitions to {cache_file}")
             except IOError as e:
                 logging.warning(f"Failed to write cache file: {e}")
 
-        return definitions
+        return definitions  # type: ignore[no-any-return]
     except requests.exceptions.RequestException as e:
         raise Exception(f"Failed to fetch IAM definitions from {url}: {str(e)}")
     except json.JSONDecodeError as e:
@@ -154,36 +154,36 @@ def build_action_lookup(iam_definitions: List[Dict[str, Any]]) -> Dict[str, str]
 
 def expand_wildcard_actions(action: str, action_lookup: Dict[str, str]) -> List[str]:
     """Expand wildcard actions to list of matching actions.
-    
+
     Args:
         action: IAM action that may contain wildcards (e.g., 's3:Get*', 's3:*')
         action_lookup: Dictionary mapping actions to descriptions
-        
+
     Returns:
         List of matching action names
     """
-    if ':' not in action:
+    if ":" not in action:
         return []
-    
+
     try:
-        service, privilege = action.split(':', 1)
+        service, privilege = action.split(":", 1)
     except ValueError:
         return []
-    
+
     # Handle full service wildcard (e.g., 's3:*')
     if privilege == "*":
         return [act for act in action_lookup.keys() if act.startswith(f"{service}:")]
-    
+
     # Handle privilege wildcard (e.g., 's3:Get*', 's3:Describe*')
     if privilege.endswith("*"):
         prefix = privilege[:-1]  # Remove the '*'
         if not prefix:  # Just '*' case, same as above
             return [act for act in action_lookup.keys() if act.startswith(f"{service}:")]
-        
+
         # Find actions that start with the prefix
         pattern = f"{service}:{prefix}"
         return [act for act in action_lookup.keys() if act.startswith(pattern)]
-    
+
     # Not a wildcard
     return [action] if action in action_lookup else []
 
@@ -198,22 +198,22 @@ def get_action_description(action: str, action_lookup: Dict[str, str]) -> str:
     Returns:
         Human-readable description of the action
     """
-    if ':' not in action:
+    if ":" not in action:
         return f"Invalid action format: {action}"
 
     try:
-        service, privilege = action.split(':', 1)
+        service, privilege = action.split(":", 1)
     except ValueError:
         return f"Invalid action format: {action}"
 
     # Handle wildcard actions
-    if '*' in privilege:
+    if "*" in privilege:
         matching_actions = expand_wildcard_actions(action, action_lookup)
         if matching_actions:
             if privilege == "*":
                 return f"All actions under {service} ({len(matching_actions)} actions)"
             else:
-                prefix = privilege.replace('*', '')
+                prefix = privilege.replace("*", "")
                 return f"All {service} actions starting with '{prefix}' ({len(matching_actions)} actions)"
         else:
             return f"No actions found matching {action}"
@@ -224,24 +224,13 @@ def get_action_description(action: str, action_lookup: Dict[str, str]) -> str:
     return action_lookup.get(action, f"No description found for {action}")
 
 
-def normalize_to_list(value: Union[str, List[str], None]) -> List[str]:
-    """Convert string or list to list.
-
-    Args:
-        value: String, list, or None
-
-    Returns:
-        List of strings
-    """
-    if isinstance(value, str):
-        return [value]
-    elif isinstance(value, list):
-        return value
-    else:
-        return []
-
-
-def get_action_descriptions(policy_document: Dict[str, Any], ssl_verify: bool = True, cache_dir: Optional[str] = None, use_cache: bool = True, policy_metadata: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
+def get_action_descriptions(
+    policy_document: Dict[str, Any],
+    ssl_verify: bool = True,
+    cache_dir: Optional[str] = None,
+    use_cache: bool = True,
+    policy_metadata: Optional[Dict[str, str]] = None,
+) -> List[Dict[str, Any]]:
     """Extract action descriptions from policy document.
 
     Args:
@@ -261,7 +250,7 @@ def get_action_descriptions(policy_document: Dict[str, Any], ssl_verify: bool = 
     iam_definitions = fetch_iam_definitions(ssl_verify, cache_dir, use_cache)
     action_lookup = build_action_lookup(iam_definitions)
 
-    statements = policy_document.get('Statement', [])
+    statements = policy_document.get("Statement", [])
     if not isinstance(statements, list):
         statements = [statements]
 
@@ -269,12 +258,12 @@ def get_action_descriptions(policy_document: Dict[str, Any], ssl_verify: bool = 
         statement_map = {}
         action_map = {}
 
-        actions = normalize_to_list(statement.get('Action', []))
-        effect = statement.get('Effect', '')
-        resource = normalize_to_list(statement.get('Resource', []))
-        condition = statement.get('Condition', {})
-        sid = statement.get('Sid', '')
-        principal = statement.get('Principal', {})
+        actions = normalize_to_list(statement.get("Action", []))
+        effect = statement.get("Effect", "")
+        resource = normalize_to_list(statement.get("Resource", []))
+        condition = statement.get("Condition", {})
+        sid = statement.get("Sid", "")
+        principal = statement.get("Principal", {})
 
         statement_map["Sid"] = sid
         statement_map["Effect"] = effect
@@ -288,15 +277,17 @@ def get_action_descriptions(policy_document: Dict[str, Any], ssl_verify: bool = 
 
         for action in actions:
             # Check if this is a wildcard action
-            if '*' in action and ':' in action:
+            if "*" in action and ":" in action:
                 # Get the wildcard description
                 wildcard_description = get_action_description(action, action_lookup)
                 action_map[action] = wildcard_description
-                
+
                 # Also expand the wildcard to show individual actions
                 expanded_actions = expand_wildcard_actions(action, action_lookup)
                 for expanded_action in expanded_actions:
-                    individual_description = action_lookup.get(expanded_action, f"No description found for {expanded_action}")
+                    individual_description = action_lookup.get(
+                        expanded_action, f"No description found for {expanded_action}"
+                    )
                     action_map[expanded_action] = individual_description
             else:
                 # Regular action
@@ -309,7 +300,9 @@ def get_action_descriptions(policy_document: Dict[str, Any], ssl_verify: bool = 
     return permission_map
 
 
-def process_multiple_policies(policies: List[Dict[str, Any]], ssl_verify: bool = True, cache_dir: Optional[str] = None, use_cache: bool = True) -> List[Dict[str, Any]]:
+def process_multiple_policies(
+    policies: List[Dict[str, Any]], ssl_verify: bool = True, cache_dir: Optional[str] = None, use_cache: bool = True
+) -> List[Dict[str, Any]]:
     """Process multiple policies and return combined results.
 
     Args:
@@ -324,25 +317,15 @@ def process_multiple_policies(policies: List[Dict[str, Any]], ssl_verify: bool =
     all_permissions = []
 
     for policy in policies:
-        policy_name = policy.get('PolicyName', 'Unknown')
-        policy_type = policy.get('PolicyType', 'Unknown')
-        policy_arn = policy.get('PolicyArn', '')
+        policy_name = policy.get("PolicyName", "Unknown")
+        policy_type = policy.get("PolicyType", "Unknown")
+        policy_arn = policy.get("PolicyArn", "")
 
         logging.info(f"Processing policy: {policy_name} ({policy_type})")
 
-        metadata = {
-            'PolicyName': policy_name,
-            'PolicyType': policy_type,
-            'PolicyArn': policy_arn
-        }
+        metadata = {"PolicyName": policy_name, "PolicyType": policy_type, "PolicyArn": policy_arn}
 
-        permissions = get_action_descriptions(
-            policy['Document'],
-            ssl_verify,
-            cache_dir,
-            use_cache,
-            metadata
-        )
+        permissions = get_action_descriptions(policy["Document"], ssl_verify, cache_dir, use_cache, metadata)
 
         all_permissions.extend(permissions)
 

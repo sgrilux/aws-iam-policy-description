@@ -1,37 +1,31 @@
-"""
-Unit tests for utils module.
-"""
+"""Unit tests for utils module."""
 
-import pytest
 from unittest.mock import patch
 
-from utils import (
-    get_default_cache_dir,
-    normalize_to_list
-)
+from utils import get_default_cache_dir, normalize_to_list
 
 
 class TestGetDefaultCacheDir:
     """Test cases for get_default_cache_dir function."""
 
-    @patch('utils.os.path.expanduser')
+    @patch("utils.os.path.expanduser")
     def test_get_default_cache_dir(self, mock_expanduser):
         """Test getting default cache directory."""
         mock_expanduser.return_value = "/home/user/.aws-iam-policy-description"
 
         result = get_default_cache_dir()
 
-        mock_expanduser.assert_called_once_with('~/.aws-iam-policy-description')
+        mock_expanduser.assert_called_once_with("~/.aws-iam-policy-description")
         assert result == "/home/user/.aws-iam-policy-description"
 
-    @patch('utils.os.path.expanduser')
+    @patch("utils.os.path.expanduser")
     def test_get_default_cache_dir_different_user(self, mock_expanduser):
         """Test getting default cache directory for different user."""
         mock_expanduser.return_value = "/Users/testuser/.aws-iam-policy-description"
 
         result = get_default_cache_dir()
 
-        mock_expanduser.assert_called_once_with('~/.aws-iam-policy-description')
+        mock_expanduser.assert_called_once_with("~/.aws-iam-policy-description")
         assert result == "/Users/testuser/.aws-iam-policy-description"
 
 
